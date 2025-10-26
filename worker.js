@@ -1,34 +1,36 @@
 onmessage = e => {
-  const { type, tileFeatures, spotFeatures } = e.data;
+  const { type, tileColors, spotColors } = e.data;
   if (type === "compute") {
-    const assignment = computeOptimal(tileFeatures, spotFeatures);
+    const assignment = computeOptimal(tileColors, spotColors);
     postMessage({ type: "done", assignment });
   }
 };
 
-function computeOptimal(tileFeatures, spotFeatures) {
-  const numSpots = spotFeatures.length;
-  const numTiles = tileFeatures.length;
+function computeOptimal(tileColors, spotColors) {
+  const numSpots = spotColors.length;
+  const numTiles = tileColors.length;
 
-  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles));
+  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles).fill(0));
 
   for (let i = 0; i < numSpots; i++) {
     for (let j = 0; j < numTiles; j++) {
-      let diff = 0;
-      for (let k = 0; k < 48; k++) { // 8×6 grayscale vector
-        diff += Math.abs(spotFeatures[i][k] - tileFeatures[j][k]);
-      }
+      const diff =
+        (spotColors[i][0] - tileColors[j][0]) ** 2 +
+        (spotColors[i][1] - tileColors[j][1]) ** 2 +
+        (spotColors[i][2] - tileColors[j][2]) ** 2;
       costMatrix[i][j] = diff;
     }
     if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
   }
 
   const assignment = hungarian(costMatrix);
-  postMessage({ type: "progress", progress: 1 });
+  postMessage({ type: "progress", progress: 1.0 });
   return assignment;
 }
 
-// Simplified Hungarian method (same as before)
+// -----------------------------------------------------------
+// Simple Hungarian / Munkres Implementation
+// -----------------------------------------------------------
 function hungarian(costMatrix) {
   const nRows = costMatrix.length;
   const nCols = costMatrix[0].length;
@@ -39,18 +41,23 @@ function hungarian(costMatrix) {
     )
   );
 
+  // Step 1: Row minima
   for (let i = 0; i < n; i++) {
     const minVal = Math.min(...C[i]);
     for (let j = 0; j < n; j++) C[i][j] -= minVal;
   }
+
+  // Step 2: Column minima
   for (let j = 0; j < n; j++) {
     let colMin = Infinity;
     for (let i = 0; i < n; i++) colMin = Math.min(colMin, C[i][j]);
     for (let i = 0; i < n; i++) C[i][j] -= colMin;
   }
 
+  // Simple greedy zero assignment (fast enough for our use)
   const colUsed = new Array(n).fill(false);
   const assignment = new Array(nRows).fill(null);
+
   for (let i = 0; i < nRows; i++) {
     let bestJ = -1, bestVal = Infinity;
     for (let j = 0; j < nCols; j++) {
@@ -59,8 +66,15 @@ function hungarian(costMatrix) {
         bestJ = j;
       }
     }
-    if (bestJ >= 0) { assignment[i] = bestJ; colUsed[bestJ] = true; }
+    if (bestJ >= 0) {
+      assignment[i] = bestJ;
+      colUsed[bestJ] = true;
+    }
   }
-  for (let i = 0; i < nRows; i++) if (assignment[i] === null) assignment[i] = Math.floor(Math.random() * nCols);
+
+  // Fill empty spots randomly if fewer tiles than grid cells
+  for (let i = 0; i < nRows; i++)
+    if (assignment[i] === null) assignment[i] = Math.floor(Math.random() * nCols);
+
   return assignment;
 }
