@@ -25,20 +25,53 @@ function computeOptimal(tileColors, spotColors, allowDuplicates) {
   }
 
   let assignment;
+  // if (allowDuplicates) {
+  //   // ✅ Local per-spot best match (allows duplicates)
+  //   assignment = new Array(numSpots);
+  //   for (let i = 0; i < numSpots; i++) {
+  //     let bestJ = 0;
+  //     let bestVal = Infinity;
+  //     for (let j = 0; j < numTiles; j++) {
+  //       const val = costMatrix[i][j];
+  //       if (val < bestVal) {
+  //         bestVal = val;
+  //         bestJ = j;
+  //       }
+  //     }
+  //     assignment[i] = bestJ;
+  //     if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
+  //   }
+  // } else {
+  //   // ❌ No duplicates (global Hungarian optimization)
+  //   assignment = hungarian(costMatrix);
+  // }
+
   if (allowDuplicates) {
-    // ✅ Local per-spot best match (allows duplicates)
+    // ✅ Local per-spot best match (soft duplicate control)
+    const tileUse = new Array(numTiles).fill(0);
+    const maxUses = 5; // <-- adjust this limit as you like
+  
     assignment = new Array(numSpots);
+  
     for (let i = 0; i < numSpots; i++) {
-      let bestJ = 0;
+      let bestIdx = -1;
       let bestVal = Infinity;
+  
       for (let j = 0; j < numTiles; j++) {
+        // skip tiles already used maxUses times
+        if (tileUse[j] >= maxUses) continue;
+  
         const val = costMatrix[i][j];
         if (val < bestVal) {
           bestVal = val;
-          bestJ = j;
+          bestIdx = j;
         }
       }
-      assignment[i] = bestJ;
+  
+      // if all tiles hit maxUses, pick random fallback
+      assignment[i] = bestIdx >= 0 ? bestIdx : Math.floor(Math.random() * numTiles);
+      tileUse[assignment[i]]++;
+  
       if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
     }
   } else {
