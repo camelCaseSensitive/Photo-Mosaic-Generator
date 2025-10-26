@@ -1,0 +1,6 @@
+function avgColor = AverageColor(pic)
+  # avgColor = sum(sum((pic(:,:,1)+pic(:,:,2)+pic(:,:,3))/3))/(size(pic)(1)*size(pic)(2));
+  avgColor = [sum(sum((pic(:,:,1))))/(size(pic)(1)*size(pic)(2)), ...
+              sum(sum((pic(:,:,2))))/(size(pic)(1)*size(pic)(2)),...
+              sum(sum((pic(:,:,3))))/(size(pic)(1)*size(pic)(2))]; 
+endfunction
