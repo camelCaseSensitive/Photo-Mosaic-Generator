@@ -1,17 +1,18 @@
 onmessage = e => {
-  const { type, tileColors, spotColors } = e.data;
+  const { type, tileColors, spotColors, allowDuplicates } = e.data;
   if (type === "compute") {
-    const assignment = computeOptimal(tileColors, spotColors);
+    const assignment = computeOptimal(tileColors, spotColors, allowDuplicates);
     postMessage({ type: "done", assignment });
   }
 };
 
-function computeOptimal(tileColors, spotColors) {
+function computeOptimal(tileColors, spotColors, allowDuplicates) {
   const numSpots = spotColors.length;
   const numTiles = tileColors.length;
 
-  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles).fill(0));
+  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles));
 
+  // Compute color distances
   for (let i = 0; i < numSpots; i++) {
     for (let j = 0; j < numTiles; j++) {
       const diff =
@@ -23,10 +24,32 @@ function computeOptimal(tileColors, spotColors) {
     if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
   }
 
-  const assignment = hungarian(costMatrix);
+  let assignment;
+  if (allowDuplicates) {
+    // ✅ Local per-spot best match (allows duplicates)
+    assignment = new Array(numSpots);
+    for (let i = 0; i < numSpots; i++) {
+      let bestJ = 0;
+      let bestVal = Infinity;
+      for (let j = 0; j < numTiles; j++) {
+        const val = costMatrix[i][j];
+        if (val < bestVal) {
+          bestVal = val;
+          bestJ = j;
+        }
+      }
+      assignment[i] = bestJ;
+      if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
+    }
+  } else {
+    // ❌ No duplicates (global Hungarian optimization)
+    assignment = hungarian(costMatrix);
+  }
+
   postMessage({ type: "progress", progress: 1.0 });
   return assignment;
 }
+
 
 // -----------------------------------------------------------
 // Simple Hungarian / Munkres Implementation
