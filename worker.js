@@ -1,30 +1,30 @@
 onmessage = e => {
-  const { type, tileColors, spotColors } = e.data;
+  const { type, tileFeatures, spotFeatures } = e.data;
   if (type === "compute") {
-    const assignment = computeOptimal(tileColors, spotColors);
+    const assignment = computeOptimal(tileFeatures, spotFeatures);
     postMessage({ type: "done", assignment });
   }
 };
 
-function computeOptimal(tileColors, spotColors) {
-  const numSpots = spotColors.length;
-  const numTiles = tileColors.length;
+function computeOptimal(tileFeatures, spotFeatures) {
+  const numSpots = spotFeatures.length;
+  const numTiles = tileFeatures.length;
 
-  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles).fill(0));
+  const costMatrix = Array.from({ length: numSpots }, () => new Array(numTiles));
 
   for (let i = 0; i < numSpots; i++) {
     for (let j = 0; j < numTiles; j++) {
-      const diff =
-        (spotColors[i][0] - tileColors[j][0]) ** 2 +
-        (spotColors[i][1] - tileColors[j][1]) ** 2 +
-        (spotColors[i][2] - tileColors[j][2]) ** 2;
+      let diff = 0;
+      for (let k = 0; k < 48; k++) { // 8×6 grayscale vector
+        diff += Math.abs(spotFeatures[i][k] - tileFeatures[j][k]);
+      }
       costMatrix[i][j] = diff;
     }
     if (i % 5 === 0) postMessage({ type: "progress", progress: i / numSpots });
   }
 
   const assignment = hungarian(costMatrix);
-  postMessage({ type: "progress", progress: 1.0 });
+  postMessage({ type: "progress", progress: 1 });
   return assignment;
 }
 
