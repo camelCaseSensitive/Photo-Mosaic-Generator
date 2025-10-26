@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Photo Mosaic Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: linear-gradient(#fafafa, #ddd);
+    }
+    h1 { margin-top: 20px; }
+    .dropzone {
+      border: 2px dashed #999;
+      border-radius: 12px;
+      width: 280px;
+      height: 180px;
+      margin: 10px auto;
+      background: #fefefe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #777;
+    }
+    .dropzone.dragover {
+      background: #e0ffe0;
+      border-color: #0c0;
+      color: #060;
+    }
+    #controls { margin: 20px auto; }
+  </style>
+</head>
+<body>
+  <h1>📸 Photo Mosaic Generator</h1>
+  <div id="targetDrop" class="dropzone">🎯 Drop Target Image Here</div>
+  <div id="tileDrop" class="dropzone">📦 Drop Tile Images Here</div>
+
+  <div id="controls">
+    <label>Grid size: <input type="range" id="gridSlider" min="5" max="25" value="10" /></label>
+    <span id="gridValue">10</span>
+    <br>
+    <button id="generateBtn" disabled>Generate Mosaic</button>
+    <button id="downloadBtn" disabled>Download</button>
+  </div>
+
+  <script src="mosaic.js"></script>
+</body>
+</html>
