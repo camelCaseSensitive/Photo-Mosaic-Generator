@@ -109,18 +109,30 @@ async function generateMosaic() {
   const tileH = targetImg.height / scaleFactor;
   const tileW = targetImg.width / scaleFactor;
 
-  // Compute colors in main thread (cheap)
-  const tileColors = tileImgs.map(img => avgColorScaled(img, tileW, tileH));
-  const spotColors = [];
+  
+
+  // Build features for tiles
+  const tileFeatures = [];
+  for (let img of tileImgs) {
+    tileFeatures.push(tinyGrayFeature(img)); // 48-element feature
+  }
+  
+  // Build features for target grid
+  const spotFeatures = [];
   for (let y = 0; y < scaleFactor; y++) {
     for (let x = 0; x < scaleFactor; x++) {
-      let region = targetImg.get(x * tileW, y * tileH, tileW, tileH);
-      spotColors.push(avgColor(region));
+      const region = targetImg.get(
+        x * targetImg.width / scaleFactor,
+        y * targetImg.height / scaleFactor,
+        targetImg.width / scaleFactor,
+        targetImg.height / scaleFactor
+      );
+      spotFeatures.push(tinyGrayFeature(region));
     }
   }
-
-  // Send to worker for matching
-  worker.postMessage({ type: "compute", tileColors, spotColors });
+  
+  // Send to worker
+  worker.postMessage({ type: "compute", tileFeatures, spotFeatures });
   updateProgress(0.1);
   console.log("Sent data to worker...");
 }
@@ -163,20 +175,23 @@ function draw() {
 // -----------------------------------------------------------
 // UTILITIES
 // -----------------------------------------------------------
-function avgColor(img) {
-  img.loadPixels();
-  let r = 0, g = 0, b = 0;
-  let count = img.pixels.length / 4;
-  for (let i = 0; i < img.pixels.length; i += 4) {
-    r += img.pixels[i]; g += img.pixels[i + 1]; b += img.pixels[i + 2];
-  }
-  return [r / count, g / count, b / count];
-}
+// --- Compute 8×6 grayscale downsample feature (48-D) ---
+function tinyGrayFeature(img, w = 8, h = 6) {
+  const feature = new Array(w * h);
+  const small = createImage(w, h);
+  small.copy(img, 0, 0, img.width, img.height, 0, 0, w, h);
+  small.loadPixels();
 
-function avgColorScaled(img, w, h) {
-  const temp = createImage(w, h);
-  temp.copy(img, 0, 0, img.width, img.height, 0, 0, w, h);
-  return avgColor(temp);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = 4 * (y * w + x);
+      const r = small.pixels[idx];
+      const g = small.pixels[idx + 1];
+      const b = small.pixels[idx + 2];
+      feature[y * w + x] = (r + g + b) / 3; // grayscale intensity
+    }
+  }
+  return feature;
 }
 
 // ---------- HD DOWNLOAD ----------
