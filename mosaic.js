@@ -120,7 +120,8 @@ async function generateMosaic() {
   }
 
   // Send data to worker
-  worker.postMessage({ type: "compute", tileColors, spotColors });
+  const allowDuplicates = document.getElementById("dupCheckbox").checked;
+  worker.postMessage({ type: "compute", tileColors, spotColors, allowDuplicates });
   updateProgress(0.1);
   console.log("Sent color data to worker...");
 }
