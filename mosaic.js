@@ -176,21 +176,30 @@ function draw() {
 // UTILITIES
 // -----------------------------------------------------------
 // --- Compute 8×6 grayscale downsample feature (48-D) ---
+// --- Compute 8×6 grayscale feature with brightness normalization ---
 function tinyGrayFeature(img, w = 8, h = 6) {
   const feature = new Array(w * h);
   const small = createImage(w, h);
   small.copy(img, 0, 0, img.width, img.height, 0, 0, w, h);
   small.loadPixels();
 
+  // 1. Compute grayscale values
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = 4 * (y * w + x);
       const r = small.pixels[idx];
       const g = small.pixels[idx + 1];
       const b = small.pixels[idx + 2];
-      feature[y * w + x] = (r + g + b) / 3; // grayscale intensity
+      feature[y * w + x] = (r + g + b) / 3;
     }
   }
+
+  // 2. Normalize brightness (zero-mean)
+  let mean = 0;
+  for (let v of feature) mean += v;
+  mean /= feature.length;
+  for (let i = 0; i < feature.length; i++) feature[i] -= mean;
+
   return feature;
 }
 
